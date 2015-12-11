@@ -52,3 +52,69 @@ def test():
         result_max_val = make_data(raw_data)
 
         return result_max_val
+
+API 만들기
+
+max 값 api
+
+id 에 따라 max값 불러오는 api
+http://127.0.0.1:8000/max/test?id=1
+http://127.0.0.1:8000/max/test?id=2
+# metric은 temperature
+# tag는 id
+# 아래 링크에 코딩
+# vim /usr/local/web2py/applications/max/controls/test.py
+# -*- coding: utf-8 -*-
+
+import datetime
+import urllib2
+import json
+import time
+
+json_tmp = {}
+rest_result = []
+
+param_id = request.vars['id']
+
+url = "http://125.7.128.52:4242/api/query?start=6h-ago&m=sum:gyu_RC1_thl.temperature%7Bnodeid="+param_id+"%7D&o=&yrange=%500:%5d&wxh=1099x453&autoreload=15"
+
+
+def make_json(max_val):
+        json = {"max":{"id":param_id, "value":max_val}}
+        return json
+
+def make_data(raw_data):
+        max_val = 0
+
+        tmp_data = raw_data.replace('u' , '')
+        tmp_data = raw_data.replace('{' , '')
+        tmp_data = raw_data.replace("'" , '')
+        tmp_data = raw_data.replace('}' , '')
+        tmp_data = raw_data.split(',')
+
+        for i in range(0, len(tmp_data)-1) :
+                arr_data = tmp_data[i].split(':')
+                arr_Time = arr_data[0].strip()
+                arr_Value = arr_data[1].strip()
+
+                if float(arr_Value) > float(max_val):
+                        max_val = arr_Value
+        return max_val
+
+def test():
+        param = request.vars['id']
+
+        url_lib=urllib2.urlopen(url)
+        url_data=url_lib.read()
+
+        Data=json.loads(url_data)
+        raw_data=str(Data[0]["dps"])
+
+        # get max data using make_data function
+        result_max_val = make_data(raw_data)
+
+        json_tmp['1'] = make_json(result_max_val)
+
+        rest_result.append(json_tmp['1'])
+        ret = response.json(rest_result)
+        return ret
